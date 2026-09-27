@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:dartssh2/dartssh2.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const MaterialApp(
@@ -16,10 +17,70 @@ class UbntApp extends StatefulWidget {
 }
 
 class _UbntAppState extends State<UbntApp> {
-  final List<String> sectorIps = List.generate(10, (index) => '10.181.131.${index + 1}');
+  List<String> sectorIps = [];
   final String username = 'ubnt';
   final String password = 'ubnt0.';
   String statusLog = 'جاهز للبدء...';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadIps();
+  }
+
+  // تحميل الأيبايات المحفوظة أو تعيين القائمة الافتراضية
+  Future<void> _loadIps() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      sectorIps = prefs.getStringList('sector_ips') ??
+          List.generate(10, (index) => '10.181.131.${index + 1}');
+    });
+  }
+
+  // حفظ الأيبايات بالموبايل
+  Future<void> _saveIps() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('sector_ips', sectorIps);
+  }
+
+  // نافذة تعديل أو إضافة IP
+  void _showEditDialog({int? index}) {
+    TextEditingController ipController = TextEditingController(
+      text: index != null ? sectorIps[index] : '10.181.131.',
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(index != null ? 'تعديل IP السكتر' : 'إضافة سكتر جديد'),
+        content: TextField(
+          controller: ipController,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(hintText: 'أدخل IP السكتر'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                if (index != null) {
+                  sectorIps[index] = ipController.text;
+                } else {
+                  sectorIps.add(ipController.text);
+                }
+              });
+              _saveIps();
+              Navigator.pop(context);
+            },
+            child: const Text('حفظ'),
+          ),
+        ],
+      ),
+    );
+  }
 
   Future<void> disconnectClients(String ip) async {
     setState(() {
@@ -34,15 +95,11 @@ class _UbntAppState extends State<UbntApp> {
         onPasswordRequest: () => password,
       );
 
-      final result = await client.run('wstalist');
-      final output = String.fromCharCodes(result);
-
-      // disconnect command
       await client.run('iwpriv ath0 kickmac 00:00:00:00:00:00');
       client.close();
 
       setState(() {
-        statusLog = 'تم التنفيذ بنجاح على $ip';
+        statusLog = 'تم فصل المشتركين بنجاح على $ip';
       });
     } catch (e) {
       setState(() {
@@ -54,7 +111,16 @@ class _UbntAppState extends State<UbntApp> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('UBNT Manager')),
+      appBar: AppBar(
+        title: const Text('UBNT Manager'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add),
+            tooltip: 'إضافة سكتر',
+            onPressed: () => _showEditDialog(),
+          ),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -69,6 +135,10 @@ class _UbntAppState extends State<UbntApp> {
                   return Card(
                     child: ListTile(
                       title: Text('Sector IP: $ip'),
+                      leading: IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.blue),
+                        onPressed: () => _showEditDialog(index: index),
+                      ),
                       trailing: ElevatedButton(
                         onPressed: () => disconnectClients(ip),
                         child: const Text('فصل المشتركين'),
