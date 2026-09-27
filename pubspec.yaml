@@ -1,0 +1,17 @@
+name: ubnt_app
+description: "UBNT Multi-Sector Manager"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  dart_ssh2: ^2.8.2
+  shared_preferences: ^2.2.2
+  cupertino_icons: ^1.0.6
+
+flutter:
+  uses-material-design: true
