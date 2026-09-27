@@ -23,7 +23,7 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Reconstruct Flutter Android Project
+      - name: Reconstruct Flutter Project
         run: flutter create --platforms=android --org com.ubnt.manager .
 
       - name: Get Dependencies
