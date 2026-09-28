@@ -51,7 +51,6 @@ class _UbntAppState extends State<UbntApp> {
     _loadSectors();
   }
 
-  // تحميل البيانات المحفوظة
   Future<void> _loadSectors() async {
     final prefs = await SharedPreferences.getInstance();
     final String? savedData = prefs.getString('sectors_data');
@@ -62,7 +61,6 @@ class _UbntAppState extends State<UbntApp> {
         sectors = jsonList.map((item) => SectorModel.fromJson(item)).toList();
       });
     } else {
-      // القائمة الافتراضية لأول مرة
       setState(() {
         sectors = List.generate(
           10,
@@ -77,14 +75,12 @@ class _UbntAppState extends State<UbntApp> {
     }
   }
 
-  // حفظ البيانات في الموبايل
   Future<void> _saveSectors() async {
     final prefs = await SharedPreferences.getInstance();
     final String encodedData = jsonEncode(sectors.map((s) => s.toJson()).toList());
     await prefs.setString('sectors_data', encodedData);
   }
 
-  // نافذة تعديل أو إضافة سكتر
   void _showSectorDialog({int? index}) {
     final isEditing = index != null;
     TextEditingController ipController = TextEditingController(
@@ -103,7 +99,7 @@ class _UbntAppState extends State<UbntApp> {
         title: Text(isEditing ? 'تعديل بيانات السكتر' : 'إضافة سكتر جديد'),
         content: SingleChildScrollView(
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisSize: min,
             children: [
               TextField(
                 controller: ipController,
@@ -174,17 +170,17 @@ class _UbntAppState extends State<UbntApp> {
     );
   }
 
-  // فصل المشتركين عن طريق SSH
+  // تنفيذ أمر الفصل المباشر والحقيقي
   Future<void> disconnectClients(SectorModel sector) async {
     setState(() {
-      statusLog = 'جاري الاتصال بـ ${sector.ip}...';
+      statusLog = 'جاري الاتصال وفصل المشتركين من ${sector.ip}...';
     });
 
     try {
       final socket = await SSHSocket.connect(
         sector.ip,
         22,
-        timeout: const Duration(seconds: 5),
+        timeout: const Duration(seconds: 6),
       );
 
       final client = SSHClient(
@@ -193,12 +189,12 @@ class _UbntAppState extends State<UbntApp> {
         onPasswordRequest: () => sector.password,
       );
 
-      // أمر فصل كافة الماكات
-      await client.run('iwpriv ath0 kickmac 00:00:00:00:00:00');
+      // إعادة تفعيل الوايرلس لإسقاط جميع الجلسات فوراً
+      await client.run('ifconfig ath0 down && sleep 1 && ifconfig ath0 up');
       client.close();
 
       setState(() {
-        statusLog = 'تم فصل المشتركين بنجاح على ${sector.ip}';
+        statusLog = 'تم فصل جميع المشتركين بنجاح على ${sector.ip}';
       });
     } catch (e) {
       setState(() {
@@ -225,6 +221,7 @@ class _UbntAppState extends State<UbntApp> {
         child: Column(
           children: [
             Container(
+              width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.blue.shade50,
