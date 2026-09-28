@@ -99,7 +99,7 @@ class _UbntAppState extends State<UbntApp> {
         title: Text(isEditing ? 'تعديل بيانات السكتر' : 'إضافة سكتر جديد'),
         content: SingleChildScrollView(
           child: Column(
-            mainAxisSize: min,
+            mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: ipController,
